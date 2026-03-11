@@ -94,6 +94,20 @@ export async function resolvePendingAction(
   if (error) throw new Error(`resolvePendingAction: ${error.message}`);
 }
 
+/** List a user's pending (non-expired) actions, newest first. */
+export async function listPendingActions(userId: string): Promise<PendingActionRow[]> {
+  const db = getServiceClient();
+  const { data, error } = await db
+    .from("pending_actions")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`listPendingActions: ${error.message}`);
+  return (data ?? []) as PendingActionRow[];
+}
+
 /** Mark an action as rejected or store an error message. Verifies ownership via userId. */
 export async function rejectPendingAction(
   actionId: string,

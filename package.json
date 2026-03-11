@@ -3,10 +3,14 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
-    "setup":     "bun run packages/api/setup.ts",
-    "test":      "bun test packages/core packages/api",
-    "test:core": "bun test packages/core",
-    "test:api":  "bun test packages/api",
-    "dev:api":   "bun run --watch packages/api/src/server.ts"
+    "setup":           "bun run packages/api/setup.ts",
+    "test":            "bun test packages/core packages/api",
+    "test:core":       "bun test packages/core",
+    "test:api":        "bun test packages/api",
+    "dev:api":         "bun run --watch packages/api/src/server.ts",
+    "dev:desktop":     "cd packages/desktop && npm run dev",
+    "dev:mobile":      "cd packages/mobile && npx expo start",
+    "dist:desktop":    "cd packages/desktop && npm run dist",
+    "build:android":   "cd packages/mobile && eas build --platform android --profile preview"
   }
 }

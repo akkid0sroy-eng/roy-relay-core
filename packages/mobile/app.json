@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Roy",
+    "slug": "roy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "roy",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0A0A0A"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "ai.relay.roy",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "roy",
+              "host": "auth"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "roy-relay-alpha"
+      }
+    }
+  }
+}
