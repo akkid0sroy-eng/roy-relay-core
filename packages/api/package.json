@@ -1,0 +1,27 @@
+{
+  "name": "@relay/api",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/server.ts",
+  "scripts": {
+    "setup": "bun run setup.ts",
+    "dev":   "bun run --watch src/server.ts",
+    "start": "bun run src/server.ts",
+    "test":  "bun test"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.4.3",
+    "@notionhq/client": "^5.9.0",
+    "@relay/core": "workspace:*",
+    "@supabase/supabase-js": "^2.45.0",
+    "googleapis": "^171.4.0",
+    "grammy": "^1.41.1",
+    "groq-sdk": "^0.8.0",
+    "hono": "^4.7.0",
+    "ioredis": "^5.10.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
