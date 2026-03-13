@@ -32,9 +32,10 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ?? "").split(",").filter(Boo
 if (allowedOrigins.length === 0) {
   console.warn("[startup] ALLOWED_ORIGINS is not set — all cross-origin API requests will be blocked.");
 }
+const corsOrigin = allowedOrigins.includes("*") ? "*" : allowedOrigins.length > 0 ? allowedOrigins : "null";
 app.use(
   "/api/*",
-  cors({ origin: allowedOrigins.length > 0 ? allowedOrigins : "null" })
+  cors({ origin: corsOrigin })
 );
 
 // ── Public routes ─────────────────────────────────────────────────────────────

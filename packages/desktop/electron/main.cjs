@@ -115,6 +115,8 @@ app.on("second-instance", (_event, commandLine) => {
   }
 });
 
+ipcMain.handle("get-pending-deep-link", () => null);
+
 app.whenReady().then(() => {
   startAuthServer();
   createWindow();
