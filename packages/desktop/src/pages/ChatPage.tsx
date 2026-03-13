@@ -17,20 +17,31 @@ const ACTION_ICONS: Record<string, string> = {
   reminder: "⏰",
 };
 
+// Module-level cache — survives route changes within the same session
+let _cachedMessages: ChatMessage[] = [];
+let _cachedToken = "";
+
 interface Props {
   session: Session;
 }
 
 export default function ChatPage({ session }: Props) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(_cachedMessages);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [actionStates, setActionStates] = useState<Record<string, "done" | "rejected" | "loading">>({});
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Keep module-level cache in sync
+  useEffect(() => { _cachedMessages = messages; }, [messages]);
+
   useEffect(() => {
-    loadHistory();
+    // Only fetch from server if token changed (new login) or cache is empty
+    if (session.access_token !== _cachedToken || _cachedMessages.length === 0) {
+      _cachedToken = session.access_token;
+      loadHistory();
+    }
   }, [session.access_token]);
 
   useEffect(() => {
@@ -111,16 +122,20 @@ export default function ChatPage({ session }: Props) {
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {messages.length === 0 && !sending && (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <p className="text-4xl mb-4">👋</p>
-            <p className="text-[#888] text-sm">Say hi to Roy.</p>
+            <img src="./roy-dark.png" alt="Roy" className="w-20 h-20 rounded-2xl mb-4 object-cover" />
+            <p className="text-white font-semibold">Hey, I'm Roy</p>
+            <p className="text-[#888] text-sm mt-1">Your personal AI companion. What can I help with?</p>
           </div>
         )}
 
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex items-end gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
           >
+            {msg.role === "assistant" && (
+              <img src="./roy-dark.png" alt="Roy" className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mb-0.5" />
+            )}
             <div className="max-w-[70%] space-y-2">
               <div
                 className={`rounded-2xl px-4 py-3 text-sm leading-relaxed ${
@@ -173,7 +188,8 @@ export default function ChatPage({ session }: Props) {
         ))}
 
         {sending && (
-          <div className="flex justify-start">
+          <div className="flex items-end gap-2 justify-start">
+            <img src="./roy-dark.png" alt="Roy" className="w-7 h-7 rounded-lg object-cover flex-shrink-0 mb-0.5" />
             <div className="bg-[#141414] rounded-2xl rounded-bl-sm px-4 py-3">
               <span className="flex gap-1">
                 {[0, 1, 2].map((i) => (

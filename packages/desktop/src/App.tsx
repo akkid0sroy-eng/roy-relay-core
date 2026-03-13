@@ -14,6 +14,7 @@ declare global {
     electronAPI?: {
       onDeepLink: (cb: (url: string) => void) => void;
       removeDeepLinkListener: () => void;
+      getPendingDeepLink: () => Promise<string | null>;
     };
   }
 }
@@ -43,6 +44,16 @@ export default function App() {
   useEffect(() => {
     async function handleDeepLink(url: string) {
       if (!url.includes("auth/callback")) return;
+
+      // PKCE flow: roy://auth/callback?code=XXXXX
+      const queryString = url.split("?")[1]?.split("#")[0] ?? "";
+      const code = new URLSearchParams(queryString).get("code");
+      if (code) {
+        await supabase.auth.exchangeCodeForSession(code);
+        return;
+      }
+
+      // Implicit fallback: roy://auth/callback#access_token=...&refresh_token=...
       const fragment = url.split("#")[1] ?? "";
       const params = new URLSearchParams(fragment);
       const access_token = params.get("access_token");
@@ -51,6 +62,11 @@ export default function App() {
         await supabase.auth.setSession({ access_token, refresh_token });
       }
     }
+
+    // Pull any deep link that arrived before this listener was registered
+    window.electronAPI?.getPendingDeepLink().then((url) => {
+      if (url) handleDeepLink(url);
+    });
 
     window.electronAPI?.onDeepLink(handleDeepLink);
     return () => window.electronAPI?.removeDeepLinkListener();

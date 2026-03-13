@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   removeDeepLinkListener: () => {
     ipcRenderer.removeAllListeners("deep-link");
   },
+  getPendingDeepLink: () => ipcRenderer.invoke("get-pending-deep-link"),
 });

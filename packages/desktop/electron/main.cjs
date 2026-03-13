@@ -1,6 +1,17 @@
-const { app, BrowserWindow, shell } = require("electron");
+const { app, BrowserWindow, shell, ipcMain, session } = require("electron");
+const http = require("http");
 const path = require("path");
 const isDev = !app.isPackaged;
+
+// ── Bypass self-signed SSL cert for the Roy API server ────────────────────────
+// Must be called before app ready. Tells Chromium to ignore cert errors on our
+// private API IP so renderer fetch() calls succeed with the self-signed cert.
+app.commandLine.appendSwitch("ignore-certificate-errors");
+
+app.on("certificate-error", (event, _webContents, url, _error, _cert, callback) => {
+  event.preventDefault();
+  callback(true);
+});
 
 // ── Single-instance lock ───────────────────────────────────────────────────────
 const gotLock = app.requestSingleInstanceLock();
@@ -9,7 +20,7 @@ if (!gotLock) {
   process.exit(0);
 }
 
-// ── Register roy:// deep link protocol (Windows) ───────────────────────────────
+// ── Register roy:// deep link protocol (Windows) — kept as fallback ───────────
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
     app.setAsDefaultProtocolClient("roy", process.execPath, [
@@ -21,6 +32,40 @@ if (process.defaultApp) {
 }
 
 let mainWindow = null;
+
+// ── Local HTTP server for auth callback (port 8642) ───────────────────────────
+// Supabase redirects to http://localhost:8642/auth/callback?code=XXXX
+// This is far more reliable than custom protocol deep links on Windows.
+const AUTH_PORT = 8642;
+let authServer = null;
+
+function startAuthServer() {
+  authServer = http.createServer((req, res) => {
+    const url = new URL(req.url, `http://localhost:${AUTH_PORT}`);
+    if (url.pathname === "/auth/callback") {
+      const code = url.searchParams.get("code");
+
+      // Close the browser tab gracefully
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(`<!DOCTYPE html><html><head><title>Roy</title></head><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#0a0a0a;color:#fff"><div style="text-align:center"><h2>✓ Logged in to Roy</h2><p style="color:#888">You can close this tab.</p><script>window.close()</script></div></body></html>`);
+
+      if (code && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send("deep-link", `roy://auth/callback?code=${code}`);
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      }
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  authServer.on("error", (err) => {
+    console.error("Auth server error:", err.message);
+  });
+
+  authServer.listen(AUTH_PORT);
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -40,7 +85,9 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    icon: path.join(__dirname, "../public/icon.ico"),
+    icon: isDev
+      ? path.join(__dirname, "../public/icon.ico")
+      : path.join(__dirname, "../dist/icon.ico"),
   });
 
   if (isDev) {
@@ -50,7 +97,6 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
-  // Open external links in the system browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
@@ -63,33 +109,18 @@ app.on("second-instance", (_event, commandLine) => {
     if (mainWindow.isMinimized()) mainWindow.restore();
     mainWindow.focus();
   }
-  // commandLine is an array; the URL is the last element on Windows
   const deepLink = commandLine.find((arg) => arg.startsWith("roy://"));
   if (deepLink && mainWindow) {
     mainWindow.webContents.send("deep-link", deepLink);
   }
 });
 
-// ── Handle deep link on macOS (open-url event) ────────────────────────────────
-app.on("open-url", (event, url) => {
-  event.preventDefault();
-  if (mainWindow) {
-    mainWindow.webContents.send("deep-link", url);
-  }
-});
-
 app.whenReady().then(() => {
+  startAuthServer();
   createWindow();
-
-  // Handle cold-start deep link on Windows (URL passed as argv)
-  const coldLink = process.argv.find((arg) => arg.startsWith("roy://"));
-  if (coldLink && mainWindow) {
-    mainWindow.webContents.once("did-finish-load", () => {
-      mainWindow.webContents.send("deep-link", coldLink);
-    });
-  }
 });
 
 app.on("window-all-closed", () => {
+  if (authServer) authServer.close();
   app.quit();
 });

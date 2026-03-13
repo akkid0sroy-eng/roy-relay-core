@@ -40,9 +40,12 @@ export default function Layout({ children, session, pendingCount, onPendingCount
         <div className="drag-region h-9" />
 
         {/* Logo */}
-        <div className="px-5 pb-4">
-          <span className="text-2xl font-bold text-white tracking-tight">Roy</span>
-          <span className="ml-2 text-xs text-[#666] font-medium">alpha</span>
+        <div className="px-4 pb-4 flex items-center gap-3">
+          <img src="./icon.png" alt="Roy" className="w-8 h-8 rounded-lg object-cover" />
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-lg font-bold text-white tracking-tight">Roy</span>
+            <span className="text-xs text-[#666] font-medium">alpha</span>
+          </div>
         </div>
 
         {/* Nav */}

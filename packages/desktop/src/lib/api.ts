@@ -83,3 +83,14 @@ export const updateProfile = (token: string, updates: Partial<UserProfile>) =>
 
 export const getIntegrations = (token: string) =>
   req<Integration[]>("/api/integrations", token);
+
+export const connectIntegration = (token: string, provider: string, body: Record<string, string>) =>
+  req<Integration>(`/api/integrations/${provider}/connect`, token, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+export const disconnectIntegration = (token: string, provider: string) =>
+  req<{ provider: string; connected: boolean }>(`/api/integrations/${provider}`, token, {
+    method: "DELETE",
+  });

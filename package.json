@@ -1,7 +1,7 @@
 {
   "name": "roy-relay-monorepo",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": ["packages/core", "packages/api"],
   "scripts": {
     "setup":           "bun run packages/api/setup.ts",
     "test":            "bun test packages/core packages/api",

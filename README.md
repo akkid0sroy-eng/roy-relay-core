@@ -80,11 +80,11 @@ roy-relay-core/
 
 ## Prerequisites
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| [Bun](https://bun.sh) | ≥ 1.1 | Runtime + package manager |
-| [Supabase](https://supabase.com) | — | Free tier works |
-| Redis | ≥ 7 | Optional — falls back to no-op without `REDIS_URL` |
+| Tool                             | Version | Notes                                              |
+| -------------------------------- | ------- | -------------------------------------------------- |
+| [Bun](https://bun.sh)            | ≥ 1.1   | Runtime + package manager                          |
+| [Supabase](https://supabase.com) | —       | Free tier works                                    |
+| Redis                            | ≥ 7     | Optional — falls back to no-op without `REDIS_URL` |
 
 ---
 
@@ -109,34 +109,35 @@ All variables go in `packages/api/.env`.
 
 ### Required
 
-| Variable | Description |
-|----------|-------------|
-| `SUPABASE_URL` | Your Supabase project URL (`https://<ref>.supabase.co`) |
-| `SUPABASE_ANON_KEY` | Public anon key — used for JWT verification |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key — bypasses RLS for server-side writes |
-| `ENCRYPTION_KEY` | 32-byte AES key, base64-encoded. Generate with the command below. |
-| `GROQ_API_KEY` | Default Groq key (users can override with their own) |
+| Variable                    | Description                                                       |
+| --------------------------- | ----------------------------------------------------------------- |
+| `SUPABASE_URL`              | Your Supabase project URL (`https://<ref>.supabase.co`)           |
+| `SUPABASE_ANON_KEY`         | Public anon key — used for JWT verification                       |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key — bypasses RLS for server-side writes            |
+| `ENCRYPTION_KEY`            | 32-byte AES key, base64-encoded. Generate with the command below. |
+| `GROQ_API_KEY`              | Default Groq key (users can override with their own)              |
 
 Generate an encryption key:
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
 ### Optional
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `3000` | HTTP listen port |
-| `REDIS_URL` | — | Redis connection string. Without this, rate limiting is a no-op. |
-| `ALLOWED_ORIGINS` | — | Comma-separated CORS origins, e.g. `https://app.example.com` |
-| `TELEGRAM_BOT_TOKEN` | — | Shared bot token for the webhook handler |
-| `TELEGRAM_WEBHOOK_SECRET` | — | Secret header value Telegram sends with each update |
-| `WHATSAPP_ACCESS_TOKEN` | — | Permanent access token from Meta for Developers |
-| `WHATSAPP_PHONE_NUMBER_ID` | — | Phone Number ID from WhatsApp API Setup page |
-| `WHATSAPP_VERIFY_TOKEN` | — | Token you choose when registering the Meta webhook |
-| `WHATSAPP_APP_SECRET` | — | App Secret (App Settings → Basic) for signature verification |
-| `API_BASE_URL` | — | Public URL of this API — used to build magic-link URLs for WhatsApp account linking |
-| `ALLOWED_EMAIL_DOMAINS` | — | Comma-separated domains allowed for `email_send` actions |
+| Variable                   | Default | Description                                                                         |
+| -------------------------- | ------- | ----------------------------------------------------------------------------------- |
+| `PORT`                     | `3000`  | HTTP listen port                                                                    |
+| `REDIS_URL`                | —       | Redis connection string. Without this, rate limiting is a no-op.                    |
+| `ALLOWED_ORIGINS`          | —       | Comma-separated CORS origins, e.g. `https://app.example.com`                        |
+| `TELEGRAM_BOT_TOKEN`       | —       | Shared bot token for the webhook handler                                            |
+| `TELEGRAM_WEBHOOK_SECRET`  | —       | Secret header value Telegram sends with each update                                 |
+| `WHATSAPP_ACCESS_TOKEN`    | —       | Permanent access token from Meta for Developers                                     |
+| `WHATSAPP_PHONE_NUMBER_ID` | —       | Phone Number ID from WhatsApp API Setup page                                        |
+| `WHATSAPP_VERIFY_TOKEN`    | —       | Token you choose when registering the Meta webhook                                  |
+| `WHATSAPP_APP_SECRET`      | —       | App Secret (App Settings → Basic) for signature verification                        |
+| `API_BASE_URL`             | —       | Public URL of this API — used to build magic-link URLs for WhatsApp account linking |
+| `ALLOWED_EMAIL_DOMAINS`    | —       | Comma-separated domains allowed for `email_send` actions                            |
 
 ---
 
@@ -152,11 +153,11 @@ packages/api/db/001_multi_tenant.sql
 
 This creates three new tables on top of the existing single-user schema:
 
-| Table | Purpose |
-|-------|---------|
-| `user_profiles` | Per-user settings: timezone, AI model, feature toggles, plan tier |
-| `user_integrations` | Encrypted secrets for Google, Notion, VAPI, etc. |
-| `pending_actions` | HitL action queue with state machine (pending → executing → approved/rejected) |
+| Table               | Purpose                                                                        |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `user_profiles`     | Per-user settings: timezone, AI model, feature toggles, plan tier              |
+| `user_integrations` | Encrypted secrets for Google, Notion, VAPI, etc.                               |
+| `pending_actions`   | HitL action queue with state machine (pending → executing → approved/rejected) |
 
 It also adds `user_id` to the existing `messages`, `memory`, and `logs` tables and replaces the permissive `USING (true)` RLS policies with `auth.uid() = user_id` scoped ones.
 
@@ -226,14 +227,16 @@ The token is a Supabase JWT obtained through the auth flow below.
 Send a passwordless sign-in link to an email address.
 
 **Request**
+
 ```json
 {
   "email": "user@example.com",
-  "telegram_id": "123456789"   // optional — links Telegram account at sign-up
+  "telegram_id": "123456789" // optional — links Telegram account at sign-up
 }
 ```
 
 **Response `200`**
+
 ```json
 { "message": "Check your email for a sign-in link." }
 ```
@@ -245,6 +248,7 @@ Send a passwordless sign-in link to an email address.
 Exchange the one-time code from the email link for session tokens. Also creates the `user_profiles` row on first login.
 
 **Response `200`**
+
 ```json
 {
   "access_token": "eyJ...",
@@ -262,11 +266,13 @@ Exchange the one-time code from the email link for session tokens. Also creates 
 Exchange a refresh token for a new access token.
 
 **Request**
+
 ```json
 { "refresh_token": "..." }
 ```
 
 **Response `200`**
+
 ```json
 { "access_token": "eyJ...", "refresh_token": "...", "expires_in": 3600 }
 ```
@@ -278,6 +284,7 @@ Exchange a refresh token for a new access token.
 Invalidate the current session. Requires `Authorization: Bearer <token>`.
 
 **Response `200`**
+
 ```json
 { "message": "Logged out." }
 ```
@@ -291,6 +298,7 @@ Invalidate the current session. Requires `Authorization: Bearer <token>`.
 Returns the current user's profile.
 
 **Response `200`**
+
 ```json
 {
   "user_id": "uuid",
@@ -312,6 +320,7 @@ Returns the current user's profile.
 Update profile fields. All fields are optional.
 
 **Request**
+
 ```json
 {
   "display_name": "Alice",
@@ -335,6 +344,7 @@ Available models: `llama-3.3-70b-versatile`, `llama-3.1-8b-instant`, `qwen-qwq-3
 Permanently delete the current user's account and all associated data (GDPR Article 17 — Right to Erasure).
 
 **Sequence:**
+
 1. Best-effort revoke Google OAuth refresh token (clears the grant on Google's side)
 2. Delete the Supabase Auth user — cascades via FK to: `user_profiles`, `messages`, `memory`, `logs`, `user_integrations`, `pending_actions`
 3. Clear `at` and `rt` session cookies
@@ -343,9 +353,9 @@ Permanently delete the current user's account and all associated data (GDPR Arti
 
 **Error responses**
 
-| Status | Meaning |
-|--------|---------|
-| `500` | Supabase auth deletion failed — account not deleted |
+| Status | Meaning                                             |
+| ------ | --------------------------------------------------- |
+| `500`  | Supabase auth deletion failed — account not deleted |
 
 ---
 
@@ -354,6 +364,7 @@ Permanently delete the current user's account and all associated data (GDPR Arti
 Returns the current Telegram thread → agent mapping.
 
 **Response `200`**
+
 ```json
 { "123456": "research", "789012": "finance" }
 ```
@@ -365,11 +376,13 @@ Returns the current Telegram thread → agent mapping.
 Register or unregister a Telegram thread as an agent topic.
 
 **Request — register**
+
 ```json
 { "thread_id": "123456", "agent_key": "research" }
 ```
 
 **Request — unregister**
+
 ```json
 { "thread_id": "123456", "agent_key": null }
 ```
@@ -385,10 +398,19 @@ Available agent keys: `general`, `research`, `content`, `finance`, `strategy`, `
 List all integrations for the current user. Does not include secrets.
 
 **Response `200`**
+
 ```json
 [
-  { "provider": "google", "enabled": true, "meta": { "email": "user@gmail.com" } },
-  { "provider": "notion", "enabled": true, "meta": { "databases": ["tasks", "docs"] } }
+  {
+    "provider": "google",
+    "enabled": true,
+    "meta": { "email": "user@gmail.com" }
+  },
+  {
+    "provider": "notion",
+    "enabled": true,
+    "meta": { "databases": ["tasks", "docs"] }
+  }
 ]
 ```
 
@@ -401,6 +423,7 @@ Check whether a specific integration is connected and enabled.
 `:provider` — one of `google`, `notion`, `vapi`, `elevenlabs`, `tavily`, `groq`
 
 **Response `200`**
+
 ```json
 { "provider": "google", "enabled": true, "connected": true }
 ```
@@ -412,9 +435,11 @@ Check whether a specific integration is connected and enabled.
 Get the OAuth2 URL to redirect the user to for Google sign-in.
 
 **Query params**
+
 - `redirect_uri` (required) — where Google should redirect after consent
 
 **Response `200`**
+
 ```json
 { "url": "https://accounts.google.com/o/oauth2/v2/auth?..." }
 ```
@@ -426,6 +451,7 @@ Get the OAuth2 URL to redirect the user to for Google sign-in.
 Exchange an OAuth2 authorization code for tokens and save them encrypted.
 
 **Request**
+
 ```json
 {
   "code": "4/0AX...",
@@ -434,8 +460,15 @@ Exchange an OAuth2 authorization code for tokens and save them encrypted.
 ```
 
 **Response `200`**
+
 ```json
-{ "ok": true, "meta": { "email": "user@gmail.com", "scope": ["gmail.send", "calendar.events"] } }
+{
+  "ok": true,
+  "meta": {
+    "email": "user@gmail.com",
+    "scope": ["gmail.send", "calendar.events"]
+  }
+}
 ```
 
 ---
@@ -445,6 +478,7 @@ Exchange an OAuth2 authorization code for tokens and save them encrypted.
 Connect a Notion integration.
 
 **Request**
+
 ```json
 {
   "token": "secret_abc123...",
@@ -454,7 +488,10 @@ Connect a Notion integration.
       "titleProperty": "Name",
       "description": "Task tracker",
       "properties": {
-        "Status": { "type": "status", "options": ["Not started", "In progress", "Done"] },
+        "Status": {
+          "type": "status",
+          "options": ["Not started", "In progress", "Done"]
+        },
         "Due date": { "type": "date" }
       }
     }
@@ -463,6 +500,7 @@ Connect a Notion integration.
 ```
 
 **Response `200`**
+
 ```json
 { "ok": true }
 ```
@@ -474,6 +512,7 @@ Connect a Notion integration.
 Connect VAPI for outbound AI phone calls.
 
 **Request**
+
 ```json
 {
   "api_key": "vapi_...",
@@ -489,6 +528,7 @@ Connect VAPI for outbound AI phone calls.
 Generic connect for `elevenlabs`, `tavily`, and `groq` — all just need an API key.
 
 **Request**
+
 ```json
 { "api_key": "sk-..." }
 ```
@@ -500,6 +540,7 @@ Generic connect for `elevenlabs`, `tavily`, and `groq` — all just need an API 
 Disconnect and delete an integration.
 
 **Response `200`**
+
 ```json
 { "ok": true }
 ```
@@ -514,20 +555,23 @@ Send a message and get an AI reply. Runs the full pipeline:
 load profile → integration flags → conversation history → optional web search → memory context → build prompt → call Groq → parse action intent → store pending action → persist messages.
 
 **Request**
+
 ```json
 {
   "content": "Schedule a team sync tomorrow at 10am",
-  "thread_id": "123456",   // optional — Telegram thread/topic ID
-  "channel": "api"         // optional — default: "api"
+  "thread_id": "123456", // optional — Telegram thread/topic ID
+  "channel": "api" // optional — default: "api"
 }
 ```
 
 **Response `200` — plain reply**
+
 ```json
 { "reply": "Done! I've added the event to your calendar." }
 ```
 
 **Response `200` — reply with HitL action**
+
 ```json
 {
   "reply": "Sure, I'll schedule that.",
@@ -540,12 +584,12 @@ When `action_id` is present, the action is pending approval. Use `POST /api/acti
 
 **Error responses**
 
-| Status | Meaning |
-|--------|---------|
-| `400` | Empty or missing `content` |
-| `404` | User profile not found |
-| `429` | Rate limit exceeded |
-| `503` | Groq unavailable |
+| Status | Meaning                    |
+| ------ | -------------------------- |
+| `400`  | Empty or missing `content` |
+| `404`  | User profile not found     |
+| `429`  | Rate limit exceeded        |
+| `503`  | Groq unavailable           |
 
 ---
 
@@ -554,10 +598,12 @@ When `action_id` is present, the action is pending approval. Use `POST /api/acti
 Fetch recent conversation history for the current user.
 
 **Query params**
+
 - `thread_id` — optional, filter to a specific thread
 - `limit` — optional, default 20, max 100
 
 **Response `200`**
+
 ```json
 [
   { "role": "user", "content": "What's on my calendar?" },
@@ -574,6 +620,7 @@ Fetch recent conversation history for the current user.
 Fetch the current status of a pending action.
 
 **Response `200`**
+
 ```json
 {
   "id": "uuid",
@@ -600,17 +647,21 @@ Execute an approved action.
 5. Marks `approved` with result, or `rejected` with error
 
 **Response `200`**
+
 ```json
-{ "ok": true, "result": "Event created: Team Sync — Mon Mar 10, 10:00–11:00 AM" }
+{
+  "ok": true,
+  "result": "Event created: Team Sync — Mon Mar 10, 10:00–11:00 AM"
+}
 ```
 
 **Error responses**
 
-| Status | Meaning |
-|--------|---------|
-| `404` | Action not found or not owned by user |
-| `409` | Action already processed, or race condition on claim |
-| `502` | Integration call failed (result stored as `rejected`) |
+| Status | Meaning                                               |
+| ------ | ----------------------------------------------------- |
+| `404`  | Action not found or not owned by user                 |
+| `409`  | Action already processed, or race condition on claim  |
+| `502`  | Integration call failed (result stored as `rejected`) |
 
 ---
 
@@ -619,6 +670,7 @@ Execute an approved action.
 Cancel a pending action without executing it.
 
 **Response `200`**
+
 ```json
 { "ok": true }
 ```
@@ -632,6 +684,7 @@ Cancel a pending action without executing it.
 Receives Telegram update objects. This is a **public route** — no JWT required. Security comes from the `X-Telegram-Bot-Api-Secret-Token` header.
 
 Set the webhook in Telegram:
+
 ```bash
 curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -d "url=https://your-api.com/webhook/telegram" \
@@ -640,22 +693,22 @@ curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
 
 **Supported update types**
 
-| Type | Behaviour |
-|------|-----------|
-| `message.text` | Shows typing indicator, runs full pipeline, sends reply (or HitL keyboard if action detected) |
-| `message.photo` | Shows typing indicator, downloads image, calls Groq vision model (`llama-3.2-11b-vision-preview`), runs full pipeline |
-| `message.voice` / `message.audio` | Shows typing indicator, downloads audio, transcribes with Whisper (`whisper-large-v3`), runs text pipeline with transcript |
-| `message.document` | Acknowledges file receipt; asks user to paste text content |
-| `callback_query` with `approve:<id>` | Claims action, executes, edits the message with result |
-| `callback_query` with `reject:<id>` | Rejects action, edits the message |
-| `/start` command | Sends welcome message |
+| Type                                 | Behaviour                                                                                                                  |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `message.text`                       | Shows typing indicator, runs full pipeline, sends reply (or HitL keyboard if action detected)                              |
+| `message.photo`                      | Shows typing indicator, downloads image, calls Groq vision model (`llama-3.2-11b-vision-preview`), runs full pipeline      |
+| `message.voice` / `message.audio`    | Shows typing indicator, downloads audio, transcribes with Whisper (`whisper-large-v3`), runs text pipeline with transcript |
+| `message.document`                   | Acknowledges file receipt; asks user to paste text content                                                                 |
+| `callback_query` with `approve:<id>` | Claims action, executes, edits the message with result                                                                     |
+| `callback_query` with `reject:<id>`  | Rejects action, edits the message                                                                                          |
+| `/start` command                     | Sends welcome message                                                                                                      |
 
 **Error responses**
 
-| Status | Meaning |
-|--------|---------|
-| `400` | Invalid JSON body |
-| `403` | Missing or wrong `X-Telegram-Bot-Api-Secret-Token` |
+| Status | Meaning                                            |
+| ------ | -------------------------------------------------- |
+| `400`  | Invalid JSON body                                  |
+| `403`  | Missing or wrong `X-Telegram-Bot-Api-Secret-Token` |
 
 Always returns `200` for valid authenticated updates (even if the user isn't found) — Telegram retries on non-200.
 
@@ -668,6 +721,7 @@ Always returns `200` for valid authenticated updates (even if the user isn't fou
 Meta webhook verification endpoint. Called once by Meta when you register the webhook URL.
 
 **Query params**
+
 - `hub.mode` — must be `subscribe`
 - `hub.verify_token` — must match `WHATSAPP_VERIFY_TOKEN`
 - `hub.challenge` — echoed back on success
@@ -687,18 +741,19 @@ If `WHATSAPP_APP_SECRET` is not set, the signature check is skipped (development
 
 **Supported update types**
 
-| Type | Behaviour |
-|------|-----------|
-| `message.text` — linked user | Runs full message pipeline, sends AI reply (or HitL buttons if action detected) |
-| `message.text` — unknown phone | Asks for email address to link the account |
-| `message.text` — email reply from unknown phone | Sends a magic-link to that email with `whatsapp_phone` in metadata |
-| `interactive.button_reply` with `approve:<id>` | Claims action, executes it, sends result message |
-| `interactive.button_reply` with `reject:<id>` | Rejects action, sends cancellation message |
-| Delivery status updates | Silently acknowledged (no processing) |
+| Type                                            | Behaviour                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------- |
+| `message.text` — linked user                    | Runs full message pipeline, sends AI reply (or HitL buttons if action detected) |
+| `message.text` — unknown phone                  | Asks for email address to link the account                                      |
+| `message.text` — email reply from unknown phone | Sends a magic-link to that email with `whatsapp_phone` in metadata              |
+| `interactive.button_reply` with `approve:<id>`  | Claims action, executes it, sends result message                                |
+| `interactive.button_reply` with `reject:<id>`   | Rejects action, sends cancellation message                                      |
+| Delivery status updates                         | Silently acknowledged (no processing)                                           |
 
 Always returns `200` for authenticated updates — Meta retries on non-200.
 
 **HitL buttons format (WhatsApp interactive)**
+
 ```json
 {
   "type": "interactive",
@@ -707,8 +762,14 @@ Always returns `200` for authenticated updates — Meta retries on non-200.
     "body": { "text": "On it! [action preview text]" },
     "action": {
       "buttons": [
-        { "type": "reply", "reply": { "id": "approve:<uuid>", "title": "✅ Approve" } },
-        { "type": "reply", "reply": { "id": "reject:<uuid>",  "title": "❌ Cancel"  } }
+        {
+          "type": "reply",
+          "reply": { "id": "approve:<uuid>", "title": "✅ Approve" }
+        },
+        {
+          "type": "reply",
+          "reply": { "id": "reject:<uuid>", "title": "❌ Cancel" }
+        }
       ]
     }
   }
@@ -724,6 +785,7 @@ Always returns `200` for authenticated updates — Meta retries on non-200.
 No authentication required.
 
 **Response `200`**
+
 ```json
 { "ok": true }
 ```
@@ -734,13 +796,14 @@ No authentication required.
 
 Rate limits are applied per-user on all `/api/*` routes after authentication.
 
-| Plan | Limit |
-|------|-------|
-| `free` | 20 requests / minute |
-| `pro` | 100 requests / minute |
+| Plan         | Limit                  |
+| ------------ | ---------------------- |
+| `free`       | 20 requests / minute   |
+| `pro`        | 100 requests / minute  |
 | `enterprise` | 1000 requests / minute |
 
 Every response includes:
+
 ```
 X-RateLimit-Limit: 20
 X-RateLimit-Remaining: 19
@@ -748,9 +811,11 @@ X-RateLimit-Reset: 1741500060   (unix seconds)
 ```
 
 On limit exceeded (`429`):
+
 ```json
 { "error": "Rate limit exceeded. Please slow down.", "retry_after": 42 }
 ```
+
 ```
 Retry-After: 42
 ```
@@ -793,13 +858,13 @@ Both the Telegram (`X-Telegram-Bot-Api-Secret-Token`) and WhatsApp (`WHATSAPP_VE
 
 `secureHeaders()` middleware is applied globally. Every response includes:
 
-| Header | Value |
-|--------|-------|
-| `X-Content-Type-Options` | `nosniff` |
-| `X-Frame-Options` | `DENY` |
+| Header                      | Value                                 |
+| --------------------------- | ------------------------------------- |
+| `X-Content-Type-Options`    | `nosniff`                             |
+| `X-Frame-Options`           | `DENY`                                |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
-| `Referrer-Policy` | `no-referrer` |
-| `Content-Security-Policy` | Restrictive default-src policy |
+| `Referrer-Policy`           | `no-referrer`                         |
+| `Content-Security-Policy`   | Restrictive default-src policy        |
 
 ### Prompt injection sandboxing
 
@@ -832,17 +897,21 @@ import {
 Assembles the full system + user prompt sent to the LLM.
 
 ```typescript
-const prompt = buildPrompt("What's on my calendar?", {
-  userName: "Alice",
-  userTimezone: "America/New_York",
-  profileContext: "Software engineer.",
-  calendarEnabled: true,
-  gmailEnabled: true,
-}, {
-  memoryContext: "FACTS: likes coffee",
-  relevantContext: "RELEVANT: asked about calendar last week",
-  searchResults: "SEARCH: ...",
-});
+const prompt = buildPrompt(
+  "What's on my calendar?",
+  {
+    userName: "Alice",
+    userTimezone: "America/New_York",
+    profileContext: "Software engineer.",
+    calendarEnabled: true,
+    gmailEnabled: true,
+  },
+  {
+    memoryContext: "FACTS: likes coffee",
+    relevantContext: "RELEVANT: asked about calendar last week",
+    searchResults: "SEARCH: ...",
+  },
+);
 ```
 
 ### `parseActionIntent(response)`
@@ -851,13 +920,14 @@ Extracts and strips `[ACTION: ... | TYPE: ... | DATA: ...]` tags from an LLM res
 
 ```typescript
 const { clean, action } = parseActionIntent(
-  'Sure! [ACTION: Save note | TYPE: note | DATA: ran 5km]'
+  "Sure! [ACTION: Save note | TYPE: note | DATA: ran 5km]",
 );
 // clean  → "Sure!"
 // action → { type: "note", description: "Save note", data: "ran 5km" }
 ```
 
 Type aliases normalised automatically:
+
 - `calendar` → `calendar_create`
 - `email` → `email_send`
 - `call` / `phone` → `phone_call`
@@ -868,12 +938,16 @@ Type aliases normalised automatically:
 Executes an approved HitL action. Integration modules are injected via `loaders` — no hardcoded imports.
 
 ```typescript
-const result = await executeAction(action, {}, {
-  loadGmail: async () => ({
-    sendEmail: myGmailSendFn,
-    gmailEnabled: true,
-  }),
-});
+const result = await executeAction(
+  action,
+  {},
+  {
+    loadGmail: async () => ({
+      sendEmail: myGmailSendFn,
+      gmailEnabled: true,
+    }),
+  },
+);
 ```
 
 ### `needsWebSearch(text)`
@@ -891,6 +965,7 @@ Strips injection tags (`[ACTION:]`, `[REMEMBER:]`, `[GOAL:]`, `[DONE:]`) from us
 ### `sanitizeExternalContent(text)`
 
 Extends `sanitizeUserInput` with additional patterns for untrusted external sources (web search results, scraped content):
+
 - Strips "ignore all previous instructions" phrasing
 - Neutralises `System:` / `User:` / `Assistant:` role-block openers
 - Prevents `</search_results>` escape from the trust-boundary wrapper
@@ -907,14 +982,14 @@ The LLM includes a structured tag in its response when it wants to perform an ac
 [ACTION: description | TYPE: type | DATA: payload]
 ```
 
-| Type | `DATA` shape |
-|------|-------------|
-| `note` | Plain text string |
-| `reminder` | Plain text string |
-| `email_send` | `{"to":"...","subject":"...","body":"..."}` |
+| Type              | `DATA` shape                                                          |
+| ----------------- | --------------------------------------------------------------------- |
+| `note`            | Plain text string                                                     |
+| `reminder`        | Plain text string                                                     |
+| `email_send`      | `{"to":"...","subject":"...","body":"..."}`                           |
 | `calendar_create` | `{"title":"...","start":"YYYY-MM-DD HH:MM","end":"YYYY-MM-DD HH:MM"}` |
-| `notion_create` | `{"title":"...","content":"...","database":"tasks"}` |
-| `phone_call` | `{"message":"opening line","reason":"context for AI"}` |
+| `notion_create`   | `{"title":"...","content":"...","database":"tasks"}`                  |
+| `phone_call`      | `{"message":"opening line","reason":"context for AI"}`                |
 
 ---
 
@@ -965,15 +1040,18 @@ WhatsApp support uses the [Meta Cloud API](https://developers.facebook.com/docs/
 ### 2. Get credentials
 
 From **WhatsApp → API Setup** in your app dashboard, copy:
+
 - **Temporary or permanent access token** — generate a System User token in Business Manager for production
 - **Phone Number ID** (not the phone number itself)
 
 From **App Settings → Basic**, copy:
+
 - **App Secret** — used to verify the `X-Hub-Signature-256` signature on webhook calls
 
 ### 3. Configure the server
 
 Set these in `packages/api/.env`:
+
 ```
 WHATSAPP_ACCESS_TOKEN=EAAxxxxxx...
 WHATSAPP_PHONE_NUMBER_ID=123456789012345
@@ -985,6 +1063,7 @@ API_BASE_URL=https://your-api.com
 Or run `bun run setup` — step 8 walks through it interactively and prints the webhook registration instructions.
 
 Apply the WhatsApp migration in Supabase:
+
 ```
 packages/api/db/002_whatsapp.sql
 ```
@@ -1005,3 +1084,5 @@ When a new phone number messages your WhatsApp number, the bot asks for their em
 2. Stores their phone number in `user_profiles.whatsapp_phone`
 
 Subsequent messages are routed to the correct user automatically. The full pipeline — conversation history, memory, integrations, HitL buttons — works identically to Telegram.
+
+Build succeeded. Here's a summary of what got integrated: ┌─────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐ │ Image │ Where used │ ├─────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │ Roy_Icon.png → icon.ico │ Windows taskbar, title bar, installer icon, Start Menu shortcut │ ├─────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │ Roy_profile_dark.png │ Login screen (above email input), chat empty state, avatar next to every assistant message + typing indicator │ ├─────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────┤ │ Sidebar │ Small icon.ico next to the "Roy alpha" text │ └─────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────┘ Install dist-installer/Roy Setup 0.1.0.exe and you'll see Roy throughout the UI.

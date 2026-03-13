@@ -3,6 +3,18 @@ node_modules/
 .env.local
 .env.*.local
 dist/
+dist-installer/
 .DS_Store
 *.log
 .claude/
+
+# Electron build outputs
+*.exe
+*.dmg
+*.AppImage
+*.deb
+*.rpm
+*.zip
+*.blockmap
+out/
+release/
