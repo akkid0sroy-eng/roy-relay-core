@@ -30,14 +30,16 @@ export default function ChatPage({ session }: Props) {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [actionStates, setActionStates] = useState<Record<string, "done" | "rejected" | "loading">>({});
+  const [listening, setListening] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   // Keep module-level cache in sync
   useEffect(() => { _cachedMessages = messages; }, [messages]);
 
   useEffect(() => {
-    // Only fetch from server if token changed (new login) or cache is empty
     if (session.access_token !== _cachedToken || _cachedMessages.length === 0) {
       _cachedToken = session.access_token;
       loadHistory();
@@ -57,27 +59,62 @@ export default function ChatPage({ session }: Props) {
     }
   }
 
+  function speak(text: string) {
+    if (!ttsEnabled) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.rate = 1.05;
+    window.speechSynthesis.speak(utt);
+  }
+
+  function toggleListening() {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const rec = new SpeechRecognition();
+    rec.lang = "en-US";
+    rec.interimResults = false;
+    rec.continuous = false;
+    recognitionRef.current = rec;
+
+    rec.onresult = (e: any) => {
+      const transcript = e.results[0][0].transcript;
+      setInput((prev) => (prev ? prev + " " + transcript : transcript));
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+
+    rec.start();
+    setListening(true);
+  }
+
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
     setInput("");
     setSending(true);
+    window.speechSynthesis.cancel();
 
     const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
 
     try {
       const result = await api.sendMessage(session.access_token, text);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: (Date.now() + 1).toString(),
-          role: "assistant",
-          content: result.reply,
-          action_id: result.action_id,
-          action_description: result.action_description,
-        },
-      ]);
+      const assistantMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: result.reply,
+        action_id: result.action_id,
+        action_description: result.action_description,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+      speak(result.reply);
     } catch (err: any) {
       setMessages((prev) => [
         ...prev,
@@ -171,15 +208,9 @@ export default function ChatPage({ session }: Props) {
                         </button>
                       </div>
                     )}
-                    {state === "loading" && (
-                      <p className="text-[#666] text-xs">Processing…</p>
-                    )}
-                    {state === "done" && (
-                      <p className="text-green-400 text-xs font-semibold">✓ Approved & executed</p>
-                    )}
-                    {state === "rejected" && (
-                      <p className="text-[#666] text-xs">Cancelled.</p>
-                    )}
+                    {state === "loading" && <p className="text-[#666] text-xs">Processing…</p>}
+                    {state === "done" && <p className="text-green-400 text-xs font-semibold">✓ Approved & executed</p>}
+                    {state === "rejected" && <p className="text-[#666] text-xs">Cancelled.</p>}
                   </div>
                 );
               })()}
@@ -210,6 +241,20 @@ export default function ChatPage({ session }: Props) {
       {/* Input */}
       <div className="px-6 pb-5 pt-3 border-t border-[#2A2A2A]">
         <div className="flex items-end gap-3 bg-[#141414] border border-[#2A2A2A] rounded-2xl px-4 py-3 focus-within:border-indigo-500/50 transition-colors">
+          {/* Mic button — STT */}
+          <button
+            onClick={toggleListening}
+            title={listening ? "Stop listening" : "Speak to Roy"}
+            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              listening ? "bg-red-500 animate-pulse" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <rect x="9" y="2" width="6" height="11" rx="3" />
+              <path d="M5 10a7 7 0 0 0 14 0M12 19v3M8 22h8" />
+            </svg>
+          </button>
+
           <textarea
             ref={inputRef}
             value={input}
@@ -221,6 +266,30 @@ export default function ChatPage({ session }: Props) {
             style={{ scrollbarWidth: "none" }}
             disabled={sending}
           />
+
+          {/* TTS toggle */}
+          <button
+            onClick={() => { setTtsEnabled((v) => !v); window.speechSynthesis.cancel(); }}
+            title={ttsEnabled ? "Mute Roy" : "Unmute Roy (read responses aloud)"}
+            className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              ttsEnabled ? "bg-indigo-500 hover:bg-indigo-600" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"
+            }`}
+          >
+            {ttsEnabled ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            )}
+          </button>
+
+          {/* Send button */}
           <button
             onClick={send}
             disabled={!input.trim() || sending}
