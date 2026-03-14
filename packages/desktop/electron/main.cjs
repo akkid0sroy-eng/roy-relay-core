@@ -118,6 +118,12 @@ app.on("second-instance", (_event, commandLine) => {
 ipcMain.handle("get-pending-deep-link", () => null);
 
 app.whenReady().then(() => {
+  // Grant microphone permission for STT
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    if (permission === "media") return callback(true);
+    callback(false);
+  });
+
   startAuthServer();
   createWindow();
 });

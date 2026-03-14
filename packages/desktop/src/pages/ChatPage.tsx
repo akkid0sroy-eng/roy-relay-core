@@ -34,7 +34,8 @@ export default function ChatPage({ session }: Props) {
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
   // Keep module-level cache in sync
   useEffect(() => { _cachedMessages = messages; }, [messages]);
@@ -59,39 +60,50 @@ export default function ChatPage({ session }: Props) {
     }
   }
 
-  function speak(text: string) {
+  async function speak(text: string) {
     if (!ttsEnabled) return;
-    window.speechSynthesis.cancel();
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.rate = 1.05;
-    window.speechSynthesis.speak(utt);
+    // Try ElevenLabs first, fall back to Web Speech API
+    const audio = await api.textToSpeech(session.access_token, text);
+    if (audio) {
+      const blob = new Blob([audio], { type: "audio/mpeg" });
+      const url = URL.createObjectURL(blob);
+      const el = new Audio(url);
+      el.onended = () => URL.revokeObjectURL(url);
+      el.play();
+    } else {
+      window.speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text);
+      utt.rate = 1.05;
+      window.speechSynthesis.speak(utt);
+    }
   }
 
-  function toggleListening() {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
-
+  async function toggleListening() {
     if (listening) {
-      recognitionRef.current?.stop();
+      mediaRecorderRef.current?.stop();
       setListening(false);
       return;
     }
 
-    const rec = new SpeechRecognition();
-    rec.lang = "en-US";
-    rec.interimResults = false;
-    rec.continuous = false;
-    recognitionRef.current = rec;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      chunksRef.current = [];
+      const rec = new MediaRecorder(stream);
+      mediaRecorderRef.current = rec;
 
-    rec.onresult = (e: any) => {
-      const transcript = e.results[0][0].transcript;
-      setInput((prev) => (prev ? prev + " " + transcript : transcript));
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
+      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        try {
+          const text = await api.transcribeAudio(session.access_token, blob);
+          if (text) setInput((prev) => (prev ? prev + " " + text : text));
+        } catch { /* silent */ }
+      };
 
-    rec.start();
-    setListening(true);
+      rec.start();
+      setListening(true);
+    } catch { /* mic denied */ }
   }
 
   async function send() {
@@ -99,7 +111,7 @@ export default function ChatPage({ session }: Props) {
     if (!text || sending) return;
     setInput("");
     setSending(true);
-    window.speechSynthesis.cancel();
+    window.speechSynthesis?.cancel();
 
     const userMsg: ChatMessage = { id: Date.now().toString(), role: "user", content: text };
     setMessages((prev) => [...prev, userMsg]);
@@ -269,7 +281,7 @@ export default function ChatPage({ session }: Props) {
 
           {/* TTS toggle */}
           <button
-            onClick={() => { setTtsEnabled((v) => !v); window.speechSynthesis.cancel(); }}
+            onClick={() => { setTtsEnabled((v) => !v); window.speechSynthesis?.cancel(); }}
             title={ttsEnabled ? "Mute Roy" : "Unmute Roy (read responses aloud)"}
             className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
               ttsEnabled ? "bg-indigo-500 hover:bg-indigo-600" : "bg-[#2A2A2A] hover:bg-[#3A3A3A]"

@@ -12,6 +12,7 @@ import actionRoutes from "./routes/actions.ts";
 import webhookRoutes from "./routes/webhook.ts";
 import whatsappWebhookRoutes from "./routes/webhook-whatsapp.ts";
 import { createHealthRoutes } from "./routes/health.ts";
+import voiceRoutes from "./routes/voice.ts";
 
 export const app = new Hono();
 
@@ -50,6 +51,7 @@ app.route("/api/users", userRoutes);
 app.route("/api/integrations", integrationRoutes);
 app.route("/api/messages", messageRoutes);
 app.route("/api/actions", actionRoutes);
+app.route("/api/voice", voiceRoutes);
 
 // ── Health endpoints ──────────────────────────────────────────────────────────
 // GET /health        — liveness probe: always 200 while the process is running.

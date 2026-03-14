@@ -94,3 +94,27 @@ export const disconnectIntegration = (token: string, provider: string) =>
   req<{ provider: string; connected: boolean }>(`/api/integrations/${provider}`, token, {
     method: "DELETE",
   });
+
+export async function transcribeAudio(token: string, blob: Blob): Promise<string> {
+  const form = new FormData();
+  form.append("audio", blob, "audio.webm");
+  const res = await fetch(`${API_URL}/api/voice/transcribe`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const { text } = await res.json();
+  return text;
+}
+
+export async function textToSpeech(token: string, text: string): Promise<ArrayBuffer | null> {
+  const res = await fetch(`${API_URL}/api/voice/tts`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (res.status === 404) return null; // ElevenLabs not configured
+  if (!res.ok) return null;
+  return res.arrayBuffer();
+}
