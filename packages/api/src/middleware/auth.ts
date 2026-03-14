@@ -44,9 +44,7 @@ function verifySupabaseJwt(token: string, secret: string): JwtClaims | null {
   const [header64, payload64, sig64] = parts;
 
   // Verify HMAC-SHA256 signature
-  // Supabase JWT secrets are base64-encoded; decode to raw bytes before use.
-  const keyBuffer = Buffer.from(secret, "base64");
-  const expected = createHmac("sha256", keyBuffer)
+  const expected = createHmac("sha256", secret)
     .update(`${header64}.${payload64}`)
     .digest("base64url");
 
@@ -98,6 +96,11 @@ export const authMiddleware = createMiddleware(async (c, next) => {
 
   const claims = verifySupabaseJwt(token, jwtSecret);
   if (!claims) {
+    // Debug: decode payload to see why verification failed
+    try {
+      const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString());
+      console.error("[auth] JWT rejected — payload:", JSON.stringify({ sub: payload.sub, aud: payload.aud, exp: payload.exp, now: Math.floor(Date.now()/1000) }));
+    } catch { console.error("[auth] JWT rejected — could not decode payload"); }
     return c.json({ error: "Unauthorized" }, 401);
   }
 
