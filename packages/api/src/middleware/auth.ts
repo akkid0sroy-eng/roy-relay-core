@@ -44,7 +44,9 @@ function verifySupabaseJwt(token: string, secret: string): JwtClaims | null {
   const [header64, payload64, sig64] = parts;
 
   // Verify HMAC-SHA256 signature
-  const expected = createHmac("sha256", secret)
+  // Supabase JWT secrets are base64-encoded; decode to raw bytes before use.
+  const keyBuffer = Buffer.from(secret, "base64");
+  const expected = createHmac("sha256", keyBuffer)
     .update(`${header64}.${payload64}`)
     .digest("base64url");
 
