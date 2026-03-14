@@ -129,8 +129,13 @@ export function createMessageRoutes(deps: MessageDeps = defaultMessageDeps): Hon
       const userId = c.get("userId");
       const { content, thread_id, channel } = c.req.valid("json");
 
-      // 1. Load user profile
-      const profile = await deps.loadUserProfile(userId);
+      // 1. Load user profile — auto-create on first login via desktop/OTP
+      let profile = await deps.loadUserProfile(userId);
+      if (!profile) {
+        const db = getServiceClient();
+        await db.from("user_profiles").upsert({ user_id: userId }, { onConflict: "user_id", ignoreDuplicates: true });
+        profile = await deps.loadUserProfile(userId);
+      }
       if (!profile) return c.json({ error: "User profile not found." }, 404);
 
       // 2. Load integration flags
