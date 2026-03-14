@@ -162,34 +162,26 @@ ALTER TABLE user_integrations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE pending_actions   ENABLE ROW LEVEL SECURITY;
 
 -- user_profiles: each user sees only their own row
-CREATE POLICY IF NOT EXISTS "users_own_profile"
-  ON user_profiles FOR ALL
-  USING (auth.uid() = user_id);
-
--- user_integrations: each user sees only their own integrations
-CREATE POLICY IF NOT EXISTS "users_own_integrations"
-  ON user_integrations FOR ALL
-  USING (auth.uid() = user_id);
-
--- pending_actions: each user sees only their own actions
-CREATE POLICY IF NOT EXISTS "users_own_actions"
-  ON pending_actions FOR ALL
-  USING (auth.uid() = user_id);
-
--- messages: scoped to user (replaces the permissive policy)
-CREATE POLICY IF NOT EXISTS "users_own_messages"
-  ON messages FOR ALL
-  USING (auth.uid() = user_id);
-
--- memory: scoped to user
-CREATE POLICY IF NOT EXISTS "users_own_memory"
-  ON memory FOR ALL
-  USING (auth.uid() = user_id);
-
--- logs: scoped to user (read-only for clients — writes go through service role)
-CREATE POLICY IF NOT EXISTS "users_own_logs"
-  ON logs FOR SELECT
-  USING (auth.uid() = user_id);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_profile' AND tablename = 'user_profiles') THEN
+    CREATE POLICY "users_own_profile" ON user_profiles FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_integrations' AND tablename = 'user_integrations') THEN
+    CREATE POLICY "users_own_integrations" ON user_integrations FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_actions' AND tablename = 'pending_actions') THEN
+    CREATE POLICY "users_own_actions" ON pending_actions FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_messages' AND tablename = 'messages') THEN
+    CREATE POLICY "users_own_messages" ON messages FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_memory' AND tablename = 'memory') THEN
+    CREATE POLICY "users_own_memory" ON memory FOR ALL USING (auth.uid() = user_id);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'users_own_logs' AND tablename = 'logs') THEN
+    CREATE POLICY "users_own_logs" ON logs FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+END $$;
 
 
 -- ============================================================
