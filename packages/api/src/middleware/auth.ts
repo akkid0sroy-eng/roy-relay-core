@@ -8,6 +8,11 @@ import { getCookie } from "hono/cookie";
 import { createClient } from "@supabase/supabase-js";
 import { getServiceClient } from "../db/client.ts";
 
+const _authClient = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
 // Extend Hono's context variable types
 declare module "hono" {
   interface ContextVariableMap {
@@ -27,16 +32,9 @@ export const authMiddleware = createMiddleware(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  // Use Supabase Auth API to verify the token
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!,
-    { global: { headers: { Authorization: `Bearer ${token}` } } }
-  );
-
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await _authClient.auth.getUser(token);
   if (error || !user) {
-    console.error("[auth] getUser failed:", error?.message);
+    console.error("[auth] getUser failed:", error?.message ?? "no user");
     return c.json({ error: "Unauthorized" }, 401);
   }
 
